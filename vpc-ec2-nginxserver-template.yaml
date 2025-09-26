@@ -3,7 +3,7 @@ Description: >
   VPC (10.0.0.0/24) with one Public Subnet and one Private Subnet.
   DNS resolution and hostnames enabled.
   Public route table is set as main, and an EC2 instance is launched in the Public Subnet
-  with Apache installed via UserData.
+  with Apache Server installed via UserData.
 
 Parameters:
   KeyNameParameter:
