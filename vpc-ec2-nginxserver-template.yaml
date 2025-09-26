@@ -3,12 +3,37 @@ Description: >
   VPC (10.0.0.0/24) with one Public Subnet and one Private Subnet.
   DNS resolution and hostnames enabled.
   Public route table is set as main, and an EC2 instance is launched in the Public Subnet
-  with Apache Server installed via UserData.
+  with Apache installed via UserData.
 
 Parameters:
   KeyNameParameter:
     Type: AWS::EC2::KeyPair::KeyName
     Description: Name of an existing EC2 KeyPair to enable SSH access to the instance
+
+Mappings:
+  RegionMap:
+    us-east-1:
+      AMI: ami-0c2b8ca1dad447f8a
+    us-east-2:
+      AMI: ami-00399ec92321828f5
+    us-west-1:
+      AMI: ami-0b2f6494ff0b07a0e
+    us-west-2:
+      AMI: ami-0892d3c7ee96c0bf7
+    ap-south-1:
+      AMI: ami-052c08d70def0ac62
+    ap-southeast-1:
+      AMI: ami-0b59bfac6be064b78
+    ap-southeast-2:
+      AMI: ami-0b44050b2d893d5f7
+    eu-central-1:
+      AMI: ami-065deacbcaac64cf2
+    eu-west-1:
+      AMI: ami-01dd271720c1ba44f
+    eu-west-2:
+      AMI: ami-0eb260c4d5475b901
+    eu-west-3:
+      AMI: ami-0adcddd3324248c4c
 
 Resources:
 
@@ -23,7 +48,7 @@ Resources:
         - Key: Name
           Value: !Sub "${AWS::StackName}-vpc"
 
-  # Public subnet (first half of /24)
+  # Public subnet
   PublicSubnet:
     Type: AWS::EC2::Subnet
     Properties:
@@ -34,7 +59,7 @@ Resources:
         - Key: Name
           Value: !Sub "${AWS::StackName}-public-subnet"
 
-  # Private subnet (second half of /24)
+  # Private subnet
   PrivateSubnet:
     Type: AWS::EC2::Subnet
     Properties:
@@ -59,7 +84,7 @@ Resources:
       VpcId: !Ref MyVPC
       InternetGatewayId: !Ref InternetGateway
 
-  # Public route table (will be set as main)
+  # Public route table (set as main)
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -68,7 +93,6 @@ Resources:
         - Key: Name
           Value: !Sub "${AWS::StackName}-public-rt"
 
-  # Default route in public route table
   PublicDefaultRoute:
     Type: AWS::EC2::Route
     DependsOn: AttachInternetGateway
@@ -77,14 +101,13 @@ Resources:
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref InternetGateway
 
-  # Set Public RT as Main RT
   SetMainRouteTable:
     Type: AWS::EC2::VPCRouteTableAssociation
     Properties:
       VpcId: !Ref MyVPC
       RouteTableId: !Ref PublicRouteTable
 
-  # Security group for EC2 instance
+  # Security group
   InstanceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -107,12 +130,7 @@ Resources:
         - Key: Name
           Value: !Sub "${AWS::StackName}-sg"
 
-  # Latest Amazon Linux 2 AMI via SSM Parameter
-  LatestAmiId:
-    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
-    Default: /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2
-
-  # EC2 instance in Public Subnet
+  # EC2 Instance with Apache
   MyEC2Instance:
     Type: AWS::EC2::Instance
     Properties:
@@ -121,23 +139,15 @@ Resources:
       SecurityGroupIds: 
         - !Ref InstanceSecurityGroup
       KeyName: !Ref KeyNameParameter
-      ImageId: !Ref LatestAmiId
+      ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", AMI]
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
           yum update -y
-          # ---- Option 1: Apache ----
           yum install -y httpd
           systemctl enable httpd
           systemctl start httpd
           echo "<h1>Hello from Apache on EC2 in ${AWS::StackName}</h1>" > /var/www/html/index.html
-
-          # ---- Option 2: Nginx (comment Apache section above if you prefer) ----
-          # amazon-linux-extras enable nginx1
-          # yum install -y nginx
-          # systemctl enable nginx
-          # systemctl start nginx
-          # echo "<h1>Hello from Nginx on EC2 in ${AWS::StackName}</h1>" > /usr/share/nginx/html/index.html
       Tags:
         - Key: Name
           Value: !Sub "${AWS::StackName}-ec2"

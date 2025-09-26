@@ -3,3 +3,10 @@ aws cloudformation create-stack \
   --template-body file://template.yaml \
   --parameters ParameterKey=AmiId,ParameterValue=/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2 \
   --capabilities CAPABILITY_IAM
+
+
+aws cloudformation create-stack \
+  --stack-name my-vpc-stack \
+  --template-body file://vpc-ec2.yaml \
+  --parameters ParameterKey=KeyNameParameter,ParameterValue=MyKeyPair \
+  --capabilities CAPABILITY_IAM
