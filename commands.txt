@@ -1,0 +1,5 @@
+aws cloudformation create-stack \
+  --stack-name my-stack \
+  --template-body file://template.yaml \
+  --parameters ParameterKey=AmiId,ParameterValue=/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2 \
+  --capabilities CAPABILITY_IAM
