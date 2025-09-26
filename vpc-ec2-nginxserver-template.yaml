@@ -1,14 +1,13 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: >
-  VPC (10.0.0.0/24) with one Public Subnet and one Private Subnet.
-  DNS resolution and hostnames enabled.
-  Public route table is set as main, and an EC2 instance is launched in the Public Subnet
-  with Apache installed via UserData.
+  VPC (10.0.0.0/24) with Public and Private Subnets.
+  DNS hostnames enabled.
+  EC2 instance in Public Subnet with Apache installed via UserData.
 
 Parameters:
   KeyNameParameter:
     Type: AWS::EC2::KeyPair::KeyName
-    Description: Name of an existing EC2 KeyPair to enable SSH access to the instance
+    Description: Name of an existing EC2 KeyPair for SSH access
 
 Mappings:
   RegionMap:
@@ -37,7 +36,7 @@ Mappings:
 
 Resources:
 
-  # VPC with DNS attributes enabled
+  # VPC
   MyVPC:
     Type: AWS::EC2::VPC
     Properties:
@@ -48,7 +47,7 @@ Resources:
         - Key: Name
           Value: !Sub "${AWS::StackName}-vpc"
 
-  # Public subnet
+  # Public Subnet
   PublicSubnet:
     Type: AWS::EC2::Subnet
     Properties:
@@ -59,7 +58,7 @@ Resources:
         - Key: Name
           Value: !Sub "${AWS::StackName}-public-subnet"
 
-  # Private subnet
+  # Private Subnet
   PrivateSubnet:
     Type: AWS::EC2::Subnet
     Properties:
@@ -70,7 +69,7 @@ Resources:
         - Key: Name
           Value: !Sub "${AWS::StackName}-private-subnet"
 
-  # Internet Gateway and attachment
+  # Internet Gateway
   InternetGateway:
     Type: AWS::EC2::InternetGateway
     Properties:
@@ -84,7 +83,7 @@ Resources:
       VpcId: !Ref MyVPC
       InternetGatewayId: !Ref InternetGateway
 
-  # Public route table (set as main)
+  # Public Route Table
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -93,6 +92,7 @@ Resources:
         - Key: Name
           Value: !Sub "${AWS::StackName}-public-rt"
 
+  # Public Route Table Default Route
   PublicDefaultRoute:
     Type: AWS::EC2::Route
     DependsOn: AttachInternetGateway
@@ -101,17 +101,34 @@ Resources:
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref InternetGateway
 
-  SetMainRouteTable:
-    Type: AWS::EC2::VPCRouteTableAssociation
+  # Associate Public Subnet with Public Route Table
+  PublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
-      VpcId: !Ref MyVPC
+      SubnetId: !Ref PublicSubnet
       RouteTableId: !Ref PublicRouteTable
 
-  # Security group
+  # Private Route Table
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref MyVPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-private-rt"
+
+  # Associate Private Subnet with Private Route Table
+  PrivateSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet
+      RouteTableId: !Ref PrivateRouteTable
+
+  # Security Group
   InstanceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: Enable SSH, ICMP, and HTTP access
+      GroupDescription: Enable SSH, ICMP, and HTTP
       VpcId: !Ref MyVPC
       SecurityGroupIngress:
         - IpProtocol: tcp
@@ -130,13 +147,13 @@ Resources:
         - Key: Name
           Value: !Sub "${AWS::StackName}-sg"
 
-  # EC2 Instance with Apache
+  # EC2 Instance in Public Subnet with Apache
   MyEC2Instance:
     Type: AWS::EC2::Instance
     Properties:
       InstanceType: c6a.large
       SubnetId: !Ref PublicSubnet
-      SecurityGroupIds: 
+      SecurityGroupIds:
         - !Ref InstanceSecurityGroup
       KeyName: !Ref KeyNameParameter
       ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", AMI]
