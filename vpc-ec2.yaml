@@ -34,11 +34,10 @@ Mappings:
       AMI: ami-052c08d70def0ac62
     us-west-2:
       AMI: ami-0892d3c7ee96c0bf7
-    # add more as needed
+    # add more regions as needed
 
 Resources:
 
-  # VPC
   MyVPC:
     Type: AWS::EC2::VPC
     Properties:
@@ -49,7 +48,6 @@ Resources:
         - Key: Name
           Value: !Sub "${AWS::StackName}-vpc"
 
-  # Internet Gateway
   InternetGateway:
     Type: AWS::EC2::InternetGateway
     Properties:
@@ -63,7 +61,6 @@ Resources:
       VpcId: !Ref MyVPC
       InternetGatewayId: !Ref InternetGateway
 
-  # Public subnets
   PublicSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
@@ -84,7 +81,6 @@ Resources:
         - Key: Name
           Value: !Sub "${AWS::StackName}-public-2"
 
-  # Private subnets
   PrivateSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
@@ -105,7 +101,6 @@ Resources:
         - Key: Name
           Value: !Sub "${AWS::StackName}-private-2"
 
-  # Public Route Table + route
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -134,7 +129,6 @@ Resources:
       SubnetId: !Ref PublicSubnet2
       RouteTableId: !Ref PublicRouteTable
 
-  # NAT Gateways (one per AZ ideally)
   EIPNat1:
     Type: AWS::EC2::EIP
     DependsOn: AttachIGW
@@ -159,7 +153,6 @@ Resources:
       AllocationId: !GetAtt EIPNat2.AllocationId
       SubnetId: !Ref PublicSubnet2
 
-  # Private route tables & associations
   PrivateRouteTable1:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -202,7 +195,6 @@ Resources:
       SubnetId: !Ref PrivateSubnet2
       RouteTableId: !Ref PrivateRouteTable2
 
-  # Security group for EC2
   InstanceSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -218,7 +210,6 @@ Resources:
           ToPort: 80
           CidrIp: 0.0.0.0/0
 
-  # EC2 instance in public subnet 1
   WebServerInstance:
     Type: AWS::EC2::Instance
     Properties:
@@ -236,6 +227,3 @@ Resources:
           systemctl enable nginx
           systemctl start nginx
           echo "<h1>Welcome to Nginx in AZ1</h1>" > /usr/share/nginx/html/index.html
-
-Mappings:
-  # (note: mapping section repeated earlier, need remove duplication)
