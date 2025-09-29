@@ -36,3 +36,10 @@ aws cloudformation create-stack \
   --capabilities CAPABILITY_IAM \
   --parameters file://params.json
 
+
+aws cloudformation create-stack \
+  --stack-name MyEKSWithNLBStack \
+  --template-body file://eks-nlb-stack.yaml \
+  --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
+  --parameters ParameterKey=KeyName,ParameterValue=your-ec2-keypair
+
