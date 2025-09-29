@@ -13,3 +13,26 @@ aws cloudformation create-stack \
     ParameterKey=ClusterName,ParameterValue=myeks \
     ParameterKey=VpcId,ParameterValue=vpc-1234567890abcdef \
     ParameterKey=SubnetIds,ParameterValue='subnet-aaa,subnet-bbb,subnet-ccc'
+
+
+[
+  {
+    "ParameterKey": "ClusterName",
+    "ParameterValue": "myeks"
+  },
+  {
+    "ParameterKey": "VpcId",
+    "ParameterValue": "vpc-0469be6515561665"
+  },
+  {
+    "ParameterKey": "SubnetIds",
+    "ParameterValue": "subnet-037272b135a485c7c,subnet-009f3e24c01738f8a,subnet-03cae380c5f4d9e5b"
+  }
+]
+
+aws cloudformation create-stack \
+  --stack-name eks-nlb-stack \
+  --template-body file://eks-nlb.yaml \
+  --capabilities CAPABILITY_IAM \
+  --parameters file://params.json
+
