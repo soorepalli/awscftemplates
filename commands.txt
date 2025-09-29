@@ -3,3 +3,13 @@ aws cloudformation create-stack \
   --template-body file://vpc-ec2.yaml \
   --parameters ParameterKey=KeyNameParameter,ParameterValue=MyKeyPair \
   --capabilities CAPABILITY_IAM
+
+
+aws cloudformation create-stack \
+  --stack-name eks-nlb-stack \
+  --template-body file://eks-nlb.yaml \
+  --capabilities CAPABILITY_IAM \
+  --parameters \
+    ParameterKey=ClusterName,ParameterValue=myeks \
+    ParameterKey=VpcId,ParameterValue=vpc-1234567890abcdef \
+    ParameterKey=SubnetIds,ParameterValue='subnet-aaa,subnet-bbb,subnet-ccc'
