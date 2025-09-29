@@ -88,4 +88,17 @@ aws cloudformation create-stack \
 
 aws cloudformation wait stack-create-complete --stack-name MyEKSWithNLBStack
 
+eks config:
+aws eks update-kubeconfig --name MyEKSCluster
+
+
+Deploy Nginx Ingress Controllers with Helm to NodePorts:
+
+# HTTP Ingress
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+helm install nginx-http ingress-nginx/ingress-nginx --set controller.service.type=NodePort --set controller.service.nodePorts.http=30080
+
+# TCP/Stream Ingress
+helm repo add nginx-stable https://helm.nginx.com/stable
+helm install nginx-stream nginx-stable/nginx-ingress --set controller.service.type=NodePort --set controller.service.nodePorts.tcp=30443
 
