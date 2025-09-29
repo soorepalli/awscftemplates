@@ -102,3 +102,6 @@ helm install nginx-http ingress-nginx/ingress-nginx --set controller.service.typ
 helm repo add nginx-stable https://helm.nginx.com/stable
 helm install nginx-stream nginx-stable/nginx-ingress --set controller.service.type=NodePort --set controller.service.nodePorts.tcp=30443
 
+
+curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
