@@ -1,0 +1,165 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Create an EKS Cluster with NodeGroup, Network Load Balancer, 
+  and Target Groups/Listners for Nginx Ingress Controllers
+
+Parameters:
+  ClusterName:
+    Type: String
+    Default: "MyEKSCluster"
+  NodeInstanceType:
+    Type: String
+    Default: t3.medium
+  NodeGroupName:
+    Type: String
+    Default: "EKSNodeGroup"
+  KeyName:
+    Description: Name of an existing EC2 KeyPair to enable SSH access
+    Type: AWS::EC2::KeyPair::KeyName
+  VpcId:
+    Description: VPC where EKS and NLB will be created
+    Type: AWS::EC2::VPC::Id
+  SubnetIds:
+    Description: List of SubnetIds for EKS and NLB
+    Type: List<AWS::EC2::Subnet::Id>
+
+  HostedZoneId:
+    Type: String
+    Default: ""
+    Description: "(Optional) Route53 Hosted Zone ID"
+  DNSName:
+    Type: String
+    Default: ""
+    Description: "(Optional) DNS name for the NLB"
+
+Conditions:
+  CreateDNSRecord: !And
+    - !Not [!Equals [!Ref HostedZoneId, ""]]
+    - !Not [!Equals [!Ref DNSName, ""]]
+
+Resources:
+
+  ### EKS Cluster ###
+  EKSRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: eks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
+
+  EKSCluster:
+    Type: AWS::EKS::Cluster
+    Properties:
+      Name: !Ref ClusterName
+      RoleArn: !GetAtt EKSRole.Arn
+      ResourcesVpcConfig:
+        SubnetIds: !Ref SubnetIds
+
+  NodeInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+        - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+
+  NodeGroup:
+    Type: AWS::EKS::Nodegroup
+    Properties:
+      ClusterName: !Ref EKSCluster
+      NodeRole: !GetAtt NodeInstanceRole.Arn
+      Subnets: !Ref SubnetIds
+      ScalingConfig:
+        DesiredSize: 2
+        MaxSize: 3
+        MinSize: 1
+      InstanceTypes:
+        - !Ref NodeInstanceType
+      NodegroupName: !Ref NodeGroupName
+
+  ### Network Load Balancer ###
+  NLB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub "${ClusterName}-nlb"
+      Type: network
+      Scheme: internet-facing
+      Subnets: !Ref SubnetIds
+
+  NLBTargetGroupHTTP:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub "${ClusterName}-tg-http"
+      Port: 30080  # NodePort for Nginx HTTP Ingress
+      Protocol: TCP
+      TargetType: ip
+      VpcId: !Ref VpcId
+      HealthCheckProtocol: TCP
+      HealthCheckPort: 30080
+
+  NLBTargetGroupTCP:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub "${ClusterName}-tg-tcp"
+      Port: 30443  # NodePort for Nginx TCP Ingress
+      Protocol: TCP
+      TargetType: ip
+      VpcId: !Ref VpcId
+      HealthCheckProtocol: TCP
+      HealthCheckPort: 30443
+
+  NLBListenerHTTP:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref NLB
+      Port: 80
+      Protocol: TCP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref NLBTargetGroupHTTP
+
+  NLBListenerTCP:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref NLB
+      Port: 8080
+      Protocol: TCP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref NLBTargetGroupTCP
+          
+   ### Route 53 Record Set ###
+  NLBRecordSet:
+    Type: AWS::Route53::RecordSet
+    Condition: CreateDNSRecord
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref DNSName
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt NLB.DNSName
+        HostedZoneId: !GetAtt NLB.CanonicalHostedZoneID
+
+Outputs:
+  ClusterName:
+    Description: "EKS Cluster Name"
+    Value: !Ref EKSCluster
+  NLBArn:
+    Description: "Network Load Balancer ARN"
+    Value: !Ref NLB
+  NLBDNS:
+    Description: "Network Load Balancer DNS Name"
+    Value: !GetAtt NLB.DNSName

@@ -1,0 +1,26 @@
+[
+  {
+    "ParameterKey": "ClusterName",
+    "ParameterValue": "BaxMos-EKS-Cluster"
+  },
+  {
+    "ParameterKey": "NodeInstanceType",
+    "ParameterValue": "t3.micro"
+  },
+  {
+    "ParameterKey": "NodeGroupName",
+    "ParameterValue": "EKSNodeGroup"
+  },
+  {
+    "ParameterKey": "KeyName",
+    "ParameterValue": "SRR-Demo"
+  },
+  {
+    "ParameterKey": "VpcId",
+    "ParameterValue": "vpc-088cfec9716d180a6"
+  },
+  {
+    "ParameterKey": "SubnetIds",
+    "ParameterValue": "subnet-071211da0c2f08fe6,subnet-0a8ab39d522b789c8"
+  }
+]

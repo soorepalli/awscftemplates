@@ -14,22 +14,6 @@ aws cloudformation create-stack \
     ParameterKey=VpcId,ParameterValue=vpc-1234567890abcdef \
     ParameterKey=SubnetIds,ParameterValue='subnet-aaa,subnet-bbb,subnet-ccc'
 
-
-[
-  {
-    "ParameterKey": "ClusterName",
-    "ParameterValue": "myeks"
-  },
-  {
-    "ParameterKey": "VpcId",
-    "ParameterValue": "vpc-0469be6515561665"
-  },
-  {
-    "ParameterKey": "SubnetIds",
-    "ParameterValue": "subnet-037272b135a485c7c,subnet-009f3e24c01738f8a,subnet-03cae380c5f4d9e5b"
-  }
-]
-
 aws cloudformation create-stack \
   --stack-name eks-nlb-stack \
   --template-body file://eks-nlb.yaml \
@@ -52,39 +36,13 @@ aws cloudformation create-stack \
       ParameterKey=KeyName,ParameterValue=your-keypair \
       ParameterKey=VpcId,ParameterValue=vpc-1234567890abcdef \
       ParameterKey=SubnetIds,ParameterValue='subnet-aaaa1111,subnet-bbbb2222'
-[
-  {
-    "ParameterKey": "ClusterName",
-    "ParameterValue": "MyEKSCluster"
-  },
-  {
-    "ParameterKey": "NodeInstanceType",
-    "ParameterValue": "t3.medium"
-  },
-  {
-    "ParameterKey": "NodeGroupName",
-    "ParameterValue": "EKSNodeGroup"
-  },
-  {
-    "ParameterKey": "KeyName",
-    "ParameterValue": "your-keypair"
-  },
-  {
-    "ParameterKey": "VpcId",
-    "ParameterValue": "vpc-1234567890abcdef"
-  },
-  {
-    "ParameterKey": "SubnetIds",
-    "ParameterValue": "subnet-aaaa1111,subnet-bbbb2222"
-  }
-]
-
 
 aws cloudformation create-stack \
-  --stack-name MyEKSWithNLBStack \
-  --template-body file://eks-nlb-stack.yaml \
+  --stack-name baxmos-nlg-eks-stack \
+  --template-body file://eks-nlb-v3.yaml \
   --parameters file://parameters.json \
   --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM
+
 
 aws cloudformation wait stack-create-complete --stack-name MyEKSWithNLBStack
 
@@ -104,4 +62,8 @@ helm install nginx-stream nginx-stable/nginx-ingress --set controller.service.ty
 
 
 curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+
+kubectl apply -f nginx-http-controller.yaml
+kubectl apply -f nginx-tcp-controller.yaml
 
