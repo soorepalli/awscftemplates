@@ -1,0 +1,86 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Create an Amazon EKS Cluster with a Network Load Balancer (default/basic configuration).
+
+Parameters:
+  ClusterName:
+    Type: String
+    Default: my-eks-cluster
+    Description: EKS Cluster name
+
+  RoleName:
+    Type: String
+    Default: EKSClusterRole
+    Description: IAM Role for EKS Cluster
+
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Subnets for EKS cluster and NLB
+
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC for the EKS cluster
+
+Resources:
+
+  ### EKS IAM Role ###
+  EKSClusterRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Ref RoleName
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: eks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
+
+  ### Security Group ###
+  EKSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow communication for EKS control plane
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub "${ClusterName}-eks-sg"
+
+  ### EKS Cluster ###
+  EKSCluster:
+    Type: AWS::EKS::Cluster
+    Properties:
+      Name: !Ref ClusterName
+      RoleArn: !GetAtt EKSClusterRole.Arn
+      ResourcesVpcConfig:
+        SecurityGroupIds:
+          - !Ref EKSSecurityGroup
+        SubnetIds: !Ref SubnetIds
+      Version: "1.30"
+
+  ### Network Load Balancer ###
+  NetworkLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub "${ClusterName}-nlb"
+      Type: network
+      Scheme: internet-facing
+      Subnets: !Ref SubnetIds
+
+Outputs:
+  ClusterName:
+    Value: !Ref EKSCluster
+    Description: Name of the EKS Cluster
+
+  ClusterArn:
+    Value: !GetAtt EKSCluster.Arn
+    Description: ARN of the EKS Cluster
+
+  NetworkLoadBalancerDNS:
+    Value: !GetAtt NetworkLoadBalancer.DNSName
+    Description: DNS name of the NLB
