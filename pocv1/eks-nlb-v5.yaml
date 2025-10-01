@@ -1,0 +1,206 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Create an EKS Cluster with NodeGroup, Network Load Balancer, 
+  and Target Groups/Listners for Nginx Ingress Controllers
+
+Parameters:
+  ClusterName:
+    Type: String
+    Default: "MyEKSCluster"
+  NodeInstanceType:
+    Type: String
+    Default: t3.medium
+  NodeGroupName:
+    Type: String
+    Default: "EKSNodeGroup"
+  KeyName:
+    Description: Name of an existing EC2 KeyPair to enable SSH access
+    Type: AWS::EC2::KeyPair::KeyName
+  VpcId:
+    Description: VPC where EKS and NLB will be created
+    Type: AWS::EC2::VPC::Id
+  SubnetIds:
+    Description: List of SubnetIds for EKS and NLB
+    Type: List<AWS::EC2::Subnet::Id>
+
+Resources:
+
+  ### Network Load Balancer and Listeners ###
+  NLBTargetGroupBoltTcp7687:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: BoltTcp7687
+      Port: 7687
+      Protocol: TCP
+      VpcId: !Ref VpcId
+      TargetType: ip
+      HealthCheckProtocol: TCP
+      HealthCheckPort: 7687
+
+  NLBTargetGroupBoltHttps7473:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: BoltHttps7473
+      Port: 7473
+      Protocol: TCP
+      VpcId: !Ref VpcId
+      TargetType: ip
+      HealthCheckProtocol: TCP
+      HealthCheckPort: 7473
+
+  NLBTargetGroupJdbc443:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: Jdbc443
+      Port: 443
+      Protocol: TCP
+      VpcId: !Ref VpcId
+      TargetType: ip
+      HealthCheckProtocol: TCP
+      HealthCheckPort: 443
+
+  ### EKS Cluster ###
+  EKSRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: eks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
+
+  EKSCluster:
+    Type: AWS::EKS::Cluster
+    Properties:
+      Name: !Ref ClusterName
+      RoleArn: !GetAtt EKSRole.Arn
+      ResourcesVpcConfig:
+        SubnetIds: !Ref SubnetIds
+
+  NodeInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+        - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+
+  NodeGroup:
+    Type: AWS::EKS::Nodegroup
+    Properties:
+      ClusterName: !Ref EKSCluster
+      NodeRole: !GetAtt NodeInstanceRole.Arn
+      Subnets: !Ref SubnetIds
+      ScalingConfig:
+        DesiredSize: 2
+        MaxSize: 3
+        MinSize: 1
+      InstanceTypes:
+        - !Ref NodeInstanceType
+      NodegroupName: !Ref NodeGroupName
+
+  ### Network Load Balancer ###
+  NLB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub "${ClusterName}-nlb"
+      Type: network
+      Scheme: internet-facing
+      Subnets: !Ref SubnetIds
+
+
+  NLBListenerBoltTcp7687:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref NLB
+      Port: 7687
+      Protocol: TCP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref NLBTargetGroupBoltTcp7687
+
+  NLBListenerBoltHttps7473:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref NLB
+      Port: 7473
+      Protocol: TCP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref NLBTargetGroupBoltHttps7473
+
+  NLBListenerJdbc443:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref NLB
+      Port: 443
+      Protocol: TCP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref NLBTargetGroupJdbc443
+
+
+  # NLBTargetGroupHTTP:
+  #   Type: AWS::ElasticLoadBalancingV2::TargetGroup
+  #   Properties:
+  #     Name: !Sub "${ClusterName}-tg-http"
+  #     Port: 30080  # NodePort for Nginx HTTP Ingress
+  #     Protocol: TCP
+  #     TargetType: ip
+  #     VpcId: !Ref VpcId
+  #     HealthCheckProtocol: TCP
+  #     HealthCheckPort: 30080
+
+  # NLBTargetGroupTCP:
+  #   Type: AWS::ElasticLoadBalancingV2::TargetGroup
+  #   Properties:
+  #     Name: !Sub "${ClusterName}-tg-tcp"
+  #     Port: 30443  # NodePort for Nginx TCP Ingress
+  #     Protocol: TCP
+  #     TargetType: ip
+  #     VpcId: !Ref VpcId
+  #     HealthCheckProtocol: TCP
+  #     HealthCheckPort: 30443
+
+  # NLBListenerHTTP:
+  #   Type: AWS::ElasticLoadBalancingV2::Listener
+  #   Properties:
+  #     LoadBalancerArn: !Ref NLB
+  #     Port: 80
+  #     Protocol: TCP
+  #     DefaultActions:
+  #       - Type: forward
+  #         TargetGroupArn: !Ref NLBTargetGroupHTTP
+
+  # NLBListenerTCP:
+  #   Type: AWS::ElasticLoadBalancingV2::Listener
+  #   Properties:
+  #     LoadBalancerArn: !Ref NLB
+  #     Port: 8080
+  #     Protocol: TCP
+  #     DefaultActions:
+  #       - Type: forward
+  #         TargetGroupArn: !Ref NLBTargetGroupTCP
+
+
+Outputs:
+  ClusterName:
+    Description: "EKS Cluster Name"
+    Value: !Ref EKSCluster
+  NLBArn:
+    Description: "Network Load Balancer ARN"
+    Value: !Ref NLB
+  NLBDNS:
+    Description: "Network Load Balancer DNS Name"
+    Value: !GetAtt NLB.DNSName

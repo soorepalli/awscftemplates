@@ -17,10 +17,18 @@
   },
   {
     "ParameterKey": "VpcId",
-    "ParameterValue": "vpc-0b39c83e901dfcfd9"
+    "ParameterValue": "vpc-088cfec9716d180a6"
   },
   {
     "ParameterKey": "SubnetIds",
-    "ParameterValue": "subnet-02ad584eceb292845,subnet-0a98d6c6a2d72d7ca"
+    "ParameterValue": "subnet-071211da0c2f08fe6,subnet-0a8ab39d522b789c8"
+  },
+  {
+    "ParameterKey": "HostedZoneId",
+    "ParameterValue": "Z123456789ABCDEFG"
+  },
+  {
+    "ParameterKey": "RecordName",
+    "ParameterValue": "app.example.com"
   }
 ]

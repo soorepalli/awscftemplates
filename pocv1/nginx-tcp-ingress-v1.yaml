@@ -25,8 +25,8 @@ spec:
           - -nginx-plus=false
           - -nginx-configmaps=$(POD_NAMESPACE)/tcp-services
         ports:
-        - name: tcp
-          containerPort: 3306  # Example: expose MySQL
+        - name: bolt-https
+          containerPort: 7473
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -34,7 +34,7 @@ metadata:
   name: tcp-services
   namespace: nginx-tcp
 data:
-  "3306": "default/mysql-service:3306"
+  "7473": "default/neo4j-service:7473"
 ---
 apiVersion: v1
 kind: Service
@@ -46,7 +46,7 @@ spec:
   selector:
     app: nginx-tcp-ingress
   ports:
-  - name: tcp
-    port: 3306
-    targetPort: 3306
-    nodePort: 30306
+  - name: bolt-https
+    port: 7473
+    targetPort: 7473
+    nodePort: 30743
