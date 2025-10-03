@@ -1,0 +1,64 @@
+---
+# 1. StorageClass (Cluster Level)
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: gp3-sc
+provisioner: ebs.csi.aws.com
+parameters:
+  type: gp3
+  fsType: ext4
+volumeBindingMode: WaitForFirstConsumer
+---
+# 2. PersistentVolume (Cluster Level)
+# NOTE: You must replace volumeHandle with a valid EBS volume ID from your AWS account
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-gp3-1tb
+spec:
+  capacity:
+    storage: 100Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: gp3-sc
+  persistentVolumeReclaimPolicy: Retain
+  csi:
+    driver: ebs.csi.aws.com
+    volumeHandle: <YOUR_EBS_VOLUME_ID>   # e.g., vol-0abcd1234efgh5678
+---
+# 3. PersistentVolumeClaim (Namespace Scoped)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-gp3
+  namespace: dev
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: gp3-sc
+  resources:
+    requests:
+      storage: 100Gi
+---
+# # 4. Pod using the PVC
+# apiVersion: v1
+# kind: Pod
+# metadata:
+#   name: pvc-demo-pod
+#   namespace: dev
+# spec:
+#   containers:
+#     - name: nginx
+#       image: nginx:1.25
+#       ports:
+#         - containerPort: 80
+#       volumeMounts:
+#         - name: pvc-storage
+#           mountPath: /usr/share/nginx/html   # Data written here is persisted
+#   volumes:
+#     - name: pvc-storage
+#       persistentVolumeClaim:
+#         claimName: pvc-gp3   # 👈 your PVC name
+

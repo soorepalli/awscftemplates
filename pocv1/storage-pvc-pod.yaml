@@ -1,0 +1,46 @@
+---
+# 1. StorageClass (Cluster Level)
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: gp3-sc
+provisioner: ebs.csi.aws.com
+parameters:
+  type: gp3
+  fsType: ext4
+volumeBindingMode: WaitForFirstConsumer
+---
+# 2. PersistentVolume (Cluster Level)
+# NOTE: You must replace volumeHandle with a valid EBS volume ID from your AWS account
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-gp3
+spec:
+  capacity:
+    storage: 100Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: gp3-sc
+  persistentVolumeReclaimPolicy: Retain
+  csi:
+    driver: ebs.csi.aws.com
+    volumeHandle: vol-05b120160cf34fe5f   # e.g., vol-0abcd1234efgh5678
+---
+# 3. PersistentVolumeClaim (Namespace Scoped)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-gp3
+  namespace: dev
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: gp3-sc
+  resources:
+    requests:
+      storage: 100Gi
+
+    
+    
