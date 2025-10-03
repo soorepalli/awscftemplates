@@ -59,6 +59,17 @@ Resources:
       HealthCheckProtocol: TCP
       HealthCheckPort: 443
 
+  NLBTargetGroupHTTP:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub "${ClusterName}-tg-http"
+      Port: 30080  # NodePort for Nginx HTTP Ingress
+      Protocol: TCP
+      TargetType: ip
+      VpcId: !Ref VpcId
+      HealthCheckProtocol: TCP
+      HealthCheckPort: 30080
+
   ### EKS Cluster ###
   EKSRole:
     Type: AWS::IAM::Role
@@ -151,16 +162,7 @@ Resources:
           TargetGroupArn: !Ref NLBTargetGroupJdbc443
 
 
-  # NLBTargetGroupHTTP:
-  #   Type: AWS::ElasticLoadBalancingV2::TargetGroup
-  #   Properties:
-  #     Name: !Sub "${ClusterName}-tg-http"
-  #     Port: 30080  # NodePort for Nginx HTTP Ingress
-  #     Protocol: TCP
-  #     TargetType: ip
-  #     VpcId: !Ref VpcId
-  #     HealthCheckProtocol: TCP
-  #     HealthCheckPort: 30080
+
 
   # NLBTargetGroupTCP:
   #   Type: AWS::ElasticLoadBalancingV2::TargetGroup
@@ -173,15 +175,15 @@ Resources:
   #     HealthCheckProtocol: TCP
   #     HealthCheckPort: 30443
 
-  # NLBListenerHTTP:
-  #   Type: AWS::ElasticLoadBalancingV2::Listener
-  #   Properties:
-  #     LoadBalancerArn: !Ref NLB
-  #     Port: 80
-  #     Protocol: TCP
-  #     DefaultActions:
-  #       - Type: forward
-  #         TargetGroupArn: !Ref NLBTargetGroupHTTP
+  NLBListenerHTTP:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref NLB
+      Port: 80
+      Protocol: TCP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref NLBTargetGroupHTTP
 
   # NLBListenerTCP:
   #   Type: AWS::ElasticLoadBalancingV2::Listener

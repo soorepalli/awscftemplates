@@ -68,7 +68,14 @@ kubectl apply -f nginx-http-controller.yaml
 kubectl apply -f nginx-tcp-controller.yaml
 
 aws cloudformation create-stack \
-  --stack-name baxmos-nlg-eks-stack \
-  --template-body file://eks-nlb-v4.yaml \
+  --stack-name bxmos-nlv-eks-stack \
+  --template-body file://eks-nlb-v5.yaml \
+  --parameters file://parameters.json \
+  --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM
+
+
+  aws cloudformation update-stack \
+  --stack-name bxmos-nlb-eks-stack \
+  --template-body file://eks-nlb-v5.yaml \
   --parameters file://parameters.json \
   --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM
