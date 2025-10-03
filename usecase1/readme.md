@@ -14,8 +14,8 @@ REGION="us-east-1"
 
 aws cloudformation create-stack \
   --stack-name $STACK_NAME \
-  --template-body file://eks-nlb.yaml \
-  --parameters file://parameters.json \
+  --template-body file://cloudformation/eks-nlb.yaml \
+  --parameters file://cloudformation/parameters.json \
   --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM
 
 echo "Waiting for stack creation to complete..."
